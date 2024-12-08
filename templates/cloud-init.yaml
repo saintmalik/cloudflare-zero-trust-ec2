@@ -1,0 +1,43 @@
+#cloud-config
+timezone: UTC
+locale: en_US.UTF-8
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - docker
+  - git
+  - ca-certificates
+  - awscli
+
+groups:
+  - docker
+  - apps
+
+users:
+  - default
+  - name: apps
+    gecos: apps
+    shell: /bin/bash
+    primary_group: apps
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin, docker
+    lock_passwd: false
+    homedir: /home/apps/
+
+runcmd:
+  - sudo systemctl enable amazon-ssm-agent
+  - sudo systemctl start amazon-ssm-agent
+  - sudo systemctl enable docker
+  - sudo systemctl start docker
+  - mkdir -p /var/log/apps
+  - touch /var/log/apps/start-services.log
+  - chown -R apps:apps /var/log/apps
+  - chmod 755 /var/log/apps
+  - chmod 644 /var/log/apps/start-services.log
+  - aws s3 cp s3://${bucket_name}/configs/docker-compose.prod.yml /home/apps/docker-compose.prod.yml --region ${region}
+  - aws s3 cp s3://${bucket_name}/configs/start-services.sh /home/apps/start-services.sh --region ${region}
+  - chown -R apps:apps /home/apps/
+  - chmod +x /home/apps/start-services.sh
+  - sudo -u apps /home/apps/start-services.sh > /var/log/apps/start-services.log 2>&1

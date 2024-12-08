@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  cloudflared:
+    container_name: cloudflared
+    image: ${container_image_url}/${container_image_repo}:${cloudflared_container_image}
+    platform: linux/${instance_arch}
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_UUID=${tunnel_uuid}
+      - TUNNEL_CREDENTIALS_SSM_NAME=${ssm_parameter}
+      - ORIGIN_URL=${origin_url}
+
+  webapp:
+    container_name: webapp
+    image: ${container_image_url}/${container_image_repo}:${container_image}
+    platform: linux/${instance_arch}
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_DEV_API_URL=${base_api_url}
+      - PORT=8080
+    restart: unless-stopped
